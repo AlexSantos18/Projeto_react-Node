@@ -1,0 +1,44 @@
+{
+  // Configurações de execução/depuração para VSCode
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Backend: Dev (npm run dev)",
+      "type": "pwa-node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/backend/.env"
+    },
+    {
+      "name": "Frontend: Dev (npm run dev)",
+      "type": "pwa-node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/frontend/.env"
+    },
+    {
+      "name": "Open Frontend in Browser",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/frontend",
+      "userDataDir": "${workspaceFolder}/.vscode/.chrome"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Run Full Stack (Backend + Frontend + Browser)",
+      "configurations": [
+        "Backend: Dev (npm run dev)",
+        "Frontend: Dev (npm run dev)",
+        "Open Frontend in Browser"
+      ]
+    }
+  ]
+}
