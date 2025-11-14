@@ -1,24 +1,16 @@
-import React, { useState, useEffect } from 'react'
-import { Outlet, Link, useNavigate } from 'react-router-dom'
-import { setAuthToken } from './api'
+// src/App.jsx
+import React from 'react';
+import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext'; // Importe o hook
 
 export default function App() {
-  const [token, setToken] = useState(null)
-  const nav = useNavigate()
+  const { token, logout } = useAuth(); // Use o hook
+  const nav = useNavigate();
 
-  useEffect(() => {
-    const t =
-      typeof window !== 'undefined' && window.localStorage
-        ? window.localStorage.getItem('token')
-        : null
-    setToken(t)
-  }, [])
-
-  function handleLogout() {
-    setAuthToken(null)
-    setToken(null)
-    nav('/login')
-  }
+  const handleLogout = () => {
+    logout(); // Chama a função de logout do contexto
+    nav('/login');
+  };
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
@@ -76,5 +68,5 @@ export default function App() {
         </main>
       </div>
     </div>
-  )
+  );
 }
