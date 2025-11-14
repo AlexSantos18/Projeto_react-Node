@@ -7,6 +7,8 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Transactions from './pages/Transactions'
 import Reports from './pages/Reports'
+import './index.css';
+
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

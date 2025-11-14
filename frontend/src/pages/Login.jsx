@@ -36,6 +36,12 @@ export default function Login(){
         </div>
         <button>Entrar</button>
       </form>
+        <div className="bg-red-500 text-yellow-300 text-4xl p-4">
+          TAILWIND FUNCIONOU 🎉
+        </div>
+
+
+
       {error && <p style={{color:'red'}}>{error}</p>}
     </div>
   )
