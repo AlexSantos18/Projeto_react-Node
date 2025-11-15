@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getSummary } from "../api";
-// ✅ CORREÇÃO: Ícones corretos do react-feather
-import { ArrowUpCircle, ArrowDownCircle, DollarSign } from "react-feather";
+import { ArrowUpCircle, ArrowDownCircle, Wallet } from "react-feather";
 
 export default function Dashboard() {
   const [summary, setSummary] = useState(null);
@@ -22,24 +21,7 @@ export default function Dashboard() {
         const res = await getSummary({ from, to });
         setSummary(res.data);
       } catch (err) {
-        console.error('Erro ao buscar resumo:', err);
-        const errorMsg = err?.response?.data?.message || err.message;
-        setError(errorMsg);
-        
-        // ✅ FALLBACK: Se falhar, usa dados mockados para teste
-        console.warn('Usando dados mockados para desenvolvimento');
-        setSummary({
-          period: { from, to },
-          incomeTotal: 5000,
-          expenseTotal: 3200,
-          balance: 1800,
-          byCategory: [
-            { category: 'Alimentação', total: 800 },
-            { category: 'Transporte', total: 400 },
-            { category: 'Lazer', total: 600 },
-            { category: 'Salário', total: 5000 },
-          ]
-        });
+        setError(err?.response?.data?.message || err.message);
       } finally {
         setLoading(false);
       }
@@ -65,14 +47,7 @@ export default function Dashboard() {
       <p className="text-gray-600 mb-6">Resumo financeiro dos últimos 30 dias.</p>
 
       {loading && <p className="animate-pulse">Carregando dados...</p>}
-      {error && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-          <p className="text-yellow-800 font-semibold">⚠️ Aviso: {error}</p>
-          <p className="text-sm text-yellow-600 mt-1">
-            Exibindo dados de exemplo. Verifique se a rota <code>/api/reports/summary</code> existe no backend.
-          </p>
-        </div>
-      )}
+      {error && <p className="text-red-500 font-semibold">Erro: {error}</p>}
 
       {summary && (
         <>
@@ -83,7 +58,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             <Card title="Receitas" value={summary.incomeTotal} icon={ArrowUpCircle} color="border-green-400" />
             <Card title="Despesas" value={summary.expenseTotal} icon={ArrowDownCircle} color="border-red-400" />
-            <Card title="Saldo" value={summary.balance} icon={DollarSign} color="border-blue-400" />
+            <Card title="Saldo" value={summary.balance} icon={Wallet} color="border-fintech-300" />
           </div>
 
           <h3 className="text-xl font-bold mb-3">Por categoria</h3>
@@ -96,8 +71,8 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {(summary.byCategory || []).map((c, idx) => (
-                <tr key={c.category || idx} className="border-t hover:bg-gray-50">
+              {(summary.byCategory || []).map((c) => (
+                <tr key={c.category} className="border-t hover:bg-gray-50">
                   <td className="px-4 py-2">{c.category}</td>
                   <td className="px-4 py-2 font-medium">{fmt.format(Number(c.total) || 0)}</td>
                 </tr>

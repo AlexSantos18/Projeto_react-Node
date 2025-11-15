@@ -23,32 +23,33 @@ export function setAuthToken(token){
   }
 }
 
+// ✅ CORREÇÃO: Adicionado /api antes de todas as rotas
 export async function login(credentials){
-  return api.post('/auth/login', credentials)
+  return api.post('/api/auth/login', credentials)
 }
 
 export async function register(payload){
-  return api.post('/auth/register', payload)
+  return api.post('/api/auth/register', payload)
 }
 
 export async function getTransactions(params){
-  return api.get('/transactions', { params })
+  return api.get('/api/transactions', { params })
 }
 
 export async function getSummary(params){
-  return api.get('/reports/summary', { params })
+  return api.get('/api/reports/summary', { params })
 }
 
 export async function createTransaction(payload){
-  return api.post('/transactions', payload)
+  return api.post('/api/transactions', payload)
 }
 
 export async function updateTransaction(id, payload){
-  return api.put(`/transactions/${id}`, payload)
+  return api.put(`/api/transactions/${id}`, payload)
 }
 
 export async function deleteTransaction(id){
-  return api.delete(`/transactions/${id}`)
+  return api.delete(`/api/transactions/${id}`)
 }
 
 export default api

@@ -6,41 +6,94 @@ const CATEGORIES = ["Salário", "Aluguel", "Alimentação", "Transporte", "Lazer
 
 export default function Transactions() {
   const [list, setList] = useState([]);
-  const [form, setForm] = useState({ id: null, type: "expense", amount: "", category: "Outros", date: "" });
+  // ✅ CORREÇÃO: Adicionado campo 'note'
+  const [form, setForm] = useState({ 
+    id: null, 
+    type: "expense", 
+    amount: "", 
+    category: "Outros", 
+    date: "", 
+    note: "" 
+  });
   const [filter, setFilter] = useState({ from: "", to: "", category: "" });
   const [modalOpen, setModalOpen] = useState(false);
 
   async function load() {
-    const res = await getTransactions(filter);
-    setList(res.data);
+    try {
+      const res = await getTransactions(filter);
+      setList(res.data);
+    } catch (err) {
+      console.error('Erro ao carregar transações:', err);
+    }
   }
 
   useEffect(() => { load(); }, []);
 
   function openModal(transaction = null) {
     if (transaction) {
-      setForm(transaction);
+      setForm({
+        ...transaction,
+        // Garantir que todos os campos existam
+        note: transaction.note || ""
+      });
     } else {
-      setForm({ id: null, type: "expense", amount: "", category: "Outros", date: "" });
+      setForm({ 
+        id: null, 
+        type: "expense", 
+        amount: "", 
+        category: "Outros", 
+        date: new Date().toISOString().split('T')[0], // Data de hoje por padrão
+        note: "" 
+      });
     }
     setModalOpen(true);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (form.id) {
-      await updateTransaction(form.id, form);
-    } else {
-      await createTransaction(form);
+    
+    try {
+      // Validação básica
+      if (!form.amount || parseFloat(form.amount) <= 0) {
+        alert('Informe um valor válido');
+        return;
+      }
+      if (!form.date) {
+        alert('Informe uma data');
+        return;
+      }
+
+      const payload = {
+        type: form.type,
+        amount: parseFloat(form.amount),
+        category: form.category,
+        date: form.date,
+        note: form.note || null // Enviar null se estiver vazio
+      };
+
+      if (form.id) {
+        await updateTransaction(form.id, payload);
+      } else {
+        await createTransaction(payload);
+      }
+      
+      setModalOpen(false);
+      load();
+    } catch (err) {
+      console.error('Erro ao salvar:', err);
+      alert('Erro ao salvar transação: ' + (err.response?.data?.message || err.message));
     }
-    setModalOpen(false);
-    load();
   }
 
   async function handleDelete(id) {
     if (!confirm("Deseja remover esta transação?")) return;
-    await deleteTransaction(id);
-    load();
+    try {
+      await deleteTransaction(id);
+      load();
+    } catch (err) {
+      console.error('Erro ao deletar:', err);
+      alert('Erro ao deletar transação');
+    }
   }
 
   const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -61,72 +114,203 @@ export default function Transactions() {
       <div className="mb-6 bg-white p-4 rounded-xl shadow-card">
         <h3 className="text-lg font-semibold mb-2">Filtro</h3>
         <div className="flex flex-wrap gap-2 items-end">
-          <input type="date" value={filter.from} onChange={e => setFilter({ ...filter, from: e.target.value })} className="input" />
-          <input type="date" value={filter.to} onChange={e => setFilter({ ...filter, to: e.target.value })} className="input" />
-          <select value={filter.category} onChange={e => setFilter({ ...filter, category: e.target.value })} className="input">
+          <input 
+            type="date" 
+            value={filter.from} 
+            onChange={e => setFilter({ ...filter, from: e.target.value })} 
+            className="input"
+            placeholder="Data inicial" 
+          />
+          <input 
+            type="date" 
+            value={filter.to} 
+            onChange={e => setFilter({ ...filter, to: e.target.value })} 
+            className="input"
+            placeholder="Data final" 
+          />
+          <select 
+            value={filter.category} 
+            onChange={e => setFilter({ ...filter, category: e.target.value })} 
+            className="input"
+          >
             <option value="">Todas</option>
             {CATEGORIES.map(c => <option key={c}>{c}</option>)}
           </select>
-          <button onClick={load} className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900">Aplicar</button>
+          <button 
+            onClick={load} 
+            className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900"
+          >
+            Aplicar
+          </button>
         </div>
       </div>
 
       {/* TABELA */}
-      <table className="w-full bg-white rounded-xl shadow-card">
-        <thead className="bg-slate-100 text-gray-600">
-          <tr>
-            <th className="px-3 py-2">Tipo</th>
-            <th className="px-3 py-2">Valor</th>
-            <th className="px-3 py-2">Categoria</th>
-            <th className="px-3 py-2">Data</th>
-            <th className="px-3 py-2 text-center">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {list.map(tx => (
-            <tr key={tx.id} className="border-t hover:bg-gray-50">
-              <td className="px-3 py-2">
-                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                  tx.type === "income" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                }`}>
-                  {tx.type === "income" ? "Receita" : "Despesa"}
-                </span>
-              </td>
-              <td className="px-3 py-2 font-medium">{currency.format(tx.amount)}</td>
-              <td className="px-3 py-2">{tx.category}</td>
-              <td className="px-3 py-2">{new Date(tx.date).toLocaleDateString()}</td>
-              <td className="px-3 py-2 flex gap-2 justify-center">
-                <button onClick={() => openModal(tx)} className="text-blue-600 hover:text-blue-900"><Edit2 size={18} /></button>
-                <button onClick={() => handleDelete(tx.id)} className="text-red-600 hover:text-red-800"><Trash2 size={18} /></button>
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full bg-white rounded-xl shadow-card">
+          <thead className="bg-slate-100 text-gray-600">
+            <tr>
+              <th className="px-3 py-2 text-left">Tipo</th>
+              <th className="px-3 py-2 text-right">Valor</th>
+              <th className="px-3 py-2 text-left">Categoria</th>
+              <th className="px-3 py-2 text-left">Data</th>
+              <th className="px-3 py-2 text-left">Observação</th>
+              <th className="px-3 py-2 text-center">Ações</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {list.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="px-3 py-8 text-center text-gray-500">
+                  Nenhuma transação encontrada. Clique em "Nova" para adicionar.
+                </td>
+              </tr>
+            ) : (
+              list.map(tx => (
+                <tr key={tx.id} className="border-t hover:bg-gray-50">
+                  <td className="px-3 py-2">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      tx.type === "income" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                    }`}>
+                      {tx.type === "income" ? "Receita" : "Despesa"}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 font-medium text-right">{currency.format(tx.amount)}</td>
+                  <td className="px-3 py-2">{tx.category}</td>
+                  <td className="px-3 py-2">{new Date(tx.date).toLocaleDateString('pt-BR')}</td>
+                  <td className="px-3 py-2 text-sm text-gray-600">{tx.note || '-'}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex gap-2 justify-center">
+                      <button 
+                        onClick={() => openModal(tx)} 
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Editar"
+                      >
+                        <Edit2 size={18} />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(tx.id)} 
+                        className="text-red-600 hover:text-red-800"
+                        title="Excluir"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {/* MODAL */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <form onSubmit={handleSubmit} className="bg-white w-[95%] max-w-md rounded-xl shadow-card p-6 animate-fadeIn">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <form 
+            onSubmit={handleSubmit} 
+            className="bg-white w-full max-w-md rounded-xl shadow-card p-6 animate-fadeIn"
+          >
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">{form.id ? "Editar transação" : "Nova transação"}</h3>
-              <button type="button" onClick={() => setModalOpen(false)}><X /></button>
+              <h3 className="text-lg font-bold">
+                {form.id ? "Editar transação" : "Nova transação"}
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X />
+              </button>
             </div>
 
-            <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input mb-3">
-              <option value="income">Receita</option>
-              <option value="expense">Despesa</option>
-            </select>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo
+                </label>
+                <select 
+                  value={form.type} 
+                  onChange={e => setForm({ ...form, type: e.target.value })} 
+                  className="input w-full"
+                  required
+                >
+                  <option value="income">Receita</option>
+                  <option value="expense">Despesa</option>
+                </select>
+              </div>
 
-            <input placeholder="Valor" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="input mb-3" />
-            <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="input mb-3">
-              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-            </select>
-            <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="input mb-5" />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Valor *
+                </label>
+                <input 
+                  type="number"
+                  step="0.01"
+                  placeholder="1000,00" 
+                  value={form.amount} 
+                  onChange={e => setForm({ ...form, amount: e.target.value })} 
+                  className="input w-full" 
+                  required
+                />
+              </div>
 
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setModalOpen(false)} className="px-3 py-2 border rounded-lg">Cancelar</button>
-              <button className="px-4 py-2 bg-gradient-to-r from-fintech-300 to-fintech-cyan text-white rounded-lg shadow">Salvar</button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Categoria
+                </label>
+                <select 
+                  value={form.category} 
+                  onChange={e => setForm({ ...form, category: e.target.value })} 
+                  className="input w-full"
+                  required
+                >
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Data *
+                </label>
+                <input 
+                  type="date" 
+                  value={form.date} 
+                  onChange={e => setForm({ ...form, date: e.target.value })} 
+                  className="input w-full" 
+                  required
+                />
+              </div>
+
+              {/* ✅ NOVO CAMPO: Observação/Nota */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Observação (opcional)
+                </label>
+                <textarea
+                  placeholder="Ex: Salário mensal, Pagamento aluguel..."
+                  value={form.note}
+                  onChange={e => setForm({ ...form, note: e.target.value })}
+                  className="input w-full resize-none"
+                  rows="3"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6">
+              <button 
+                type="button" 
+                onClick={() => setModalOpen(false)} 
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit"
+                className="px-4 py-2 bg-gradient-to-r from-fintech-300 to-fintech-cyan text-white rounded-lg shadow hover:opacity-90"
+              >
+                Salvar
+              </button>
             </div>
           </form>
         </div>
