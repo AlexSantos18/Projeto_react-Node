@@ -5,7 +5,7 @@ const db = require('../src/db')
 async function run(){
   try{
     // cria usuário de teste
-    const passwordPlain = process.env.SEED_TEST_PASSWORD || 'password123'
+    const passwordPlain = process.env.SEED_TEST_PASSWORD || '123'
     const hashed = await bcrypt.hash(passwordPlain, 10)
 
     const userRes = await db.query(
